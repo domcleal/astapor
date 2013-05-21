@@ -86,9 +86,20 @@ augtool -s set /files/etc/puppet/puppet.conf/main/pluginsync true
 
 pushd $FOREMAN_INSTALLER_DIR
 scl enable ruby193 "puppet apply --verbose -e '
-  include puppet, puppet::server, passenger, foreman_proxy
+  include puppet, puppet::server, passenger
   class { 'foreman':
     db_type => 'mysql',
+  }
+
+  # Check foreman_proxy/manifests/{init,params}.pp for other options
+  class { 'foreman_proxy':
+    dhcp             => true,
+    dhcp_gateway     => '10.0.0.1',
+    dhcp_range       => '10.0.0.50 10.0.0.200',
+    dhcp_nameservers => '10.0.1.2,10.0.1.3',
+
+    dns              => true,
+    dns_reverse      => '0.0.10.in-addr.arpa',
   }
   ' --modulepath=./"
 popd
