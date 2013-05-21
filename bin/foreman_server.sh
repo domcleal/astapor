@@ -85,8 +85,15 @@ augtool -s set /files/etc/puppet/puppet.conf/agent/server $PUPPETMASTER
 augtool -s set /files/etc/puppet/puppet.conf/main/pluginsync true
 
 pushd $FOREMAN_INSTALLER_DIR
-scl enable ruby193 "puppet apply --verbose -e 'include puppet, puppet::server, passenger, foreman_proxy, foreman' --modulepath=./"
+scl enable ruby193 "puppet apply --verbose -e '
+  include puppet, puppet::server, passenger, foreman_proxy
+  class { 'foreman':
+    db_type => 'mysql',
+  }
+  ' --modulepath=./"
 popd
+
+sudo -u foreman scl enable ruby193 "cd /usr/share/foreman; RAILS_ENV=production rake db:migrate"
 
 ########### FIX PASSENGER ################# 
 cp config/broker-ruby /usr/share/foreman
@@ -94,21 +101,6 @@ chmod 777 /usr/share/foreman/broker-ruby
 cp config/ruby193-passenger.conf /etc/httpd/conf.d/ruby193-passenger.conf
 rm /etc/httpd/conf.d/passenger.conf
 
-############ SETUP MYSQL ###################
-yum -y install foreman-mysql* mysql-server
-chkconfig mysqld on
-service mysqld start
-
-MYSQL_ADMIN_PASSWD='mysql'
-/usr/bin/mysqladmin -u root password "${MYSQL_ADMIN_PASSWD}"
-/usr/bin/mysqladmin -u root -h $(hostname) password "${MYSQL_ADMIN_PASSWD}"
-
-MYSQL_PUPPET_PASSWD='puppet'
-echo "create database puppet; GRANT ALL PRIVILEGES ON puppet.* TO puppet@localhost IDENTIFIED BY '$MYSQL_PUPPET_PASSWD'; commit;" | mysql -u root -p
-
-cp config/database.yml /usr/share/foreman/config/
-
-sudo -u foreman scl enable ruby193 "cd /usr/share/foreman; RAILS_ENV=production rake db:migrate"
 ###########################################
 
 # turn on certificate autosigning
