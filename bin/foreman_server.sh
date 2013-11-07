@@ -152,6 +152,8 @@ class { 'foreman':
 # Check foreman_proxy/manifests/{init,params}.pp for other options
 class { 'foreman_proxy':
   custom_repo  => true,
+  port         => '9090',
+  registered_proxy_url => "https://\${::fqdn}:9090",
 EOM
 
 if [ "$FOREMAN_PROVISIONING" = "true" ]; then
